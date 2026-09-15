@@ -1,0 +1,16 @@
+{
+  "short_name": "ZENIN",
+  "name": "ZENIN | Dark Fantasy RPG Task Management",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#05070B",
+  "theme_color": "#05070B",
+  "display": "standalone",
+  "orientation": "portrait"
+}
