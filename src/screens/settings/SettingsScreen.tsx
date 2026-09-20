@@ -428,9 +428,9 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
               onClick={() => {
-                if (confirm('Reset application state back to fresh demo seed?')) {
+                if (confirm('Reset application state back to fresh factory state?')) {
                   resetToDemoData();
-                  showStatus('System reset to default seed state.');
+                  showStatus('System reset to default state.');
                 }
               }}
               style={{

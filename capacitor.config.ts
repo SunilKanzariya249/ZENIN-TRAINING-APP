@@ -7,13 +7,6 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
   },
-  plugins: {
-    LocalNotifications: {
-      smallIcon: 'ic_stat_icon_config_sample',
-      iconColor: '#8B5CF6',
-      sound: 'beep.wav',
-    },
-  },
 };
 
 export default config;
