@@ -20,6 +20,7 @@ export const INITIAL_SETTINGS: UserSettings = {
   dailyStepGoal: 10000,
   temperatureUnit: 'celsius',
   reducedMotion: false,
+  missionDeadlineAlertsEnabled: true,
 };
 
 export const INITIAL_USER: User = {

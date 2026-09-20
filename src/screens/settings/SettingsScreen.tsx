@@ -321,6 +321,20 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
               />
             </div>
 
+            {/* Mission Deadline Directives */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>Mission Deadline Directives</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Alert immediately when uncompleted missions reach deadline time</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.missionDeadlineAlertsEnabled !== false}
+                onChange={(e) => updateSettings({ missionDeadlineAlertsEnabled: e.target.checked })}
+                style={{ width: '18px', height: '18px', accentColor: 'var(--accent-cyan)' }}
+              />
+            </div>
+
             {/* Daily briefing & evening review toggles */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>08:00 AM Dawn Briefing Protocol</div>

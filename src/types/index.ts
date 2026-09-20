@@ -138,6 +138,7 @@ export interface UserSettings {
   supabaseAnonKey?: string;
   autoSyncEnabled?: boolean;
   lastSyncedAt?: string;
+  missionDeadlineAlertsEnabled?: boolean;
 }
 
 export interface WeatherMetrics {
@@ -196,6 +197,8 @@ export interface SystemNotification {
   xp?: number;
   newRank?: string;
   newLevel?: number;
+  missionId?: string;
+  isDeadlineAlert?: boolean;
   timestamp: string;
 }
 

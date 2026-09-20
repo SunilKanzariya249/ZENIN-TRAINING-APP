@@ -18,6 +18,9 @@ import { AlarmRingingModal } from './components/alarm/AlarmRingingModal';
 import { notificationService } from './notifications/notificationService';
 import { authService } from './services/authService';
 import { syncEngine } from './services/syncEngine';
+import { soundService } from './services/soundService';
+import { hapticService } from './services/hapticService';
+import { Mission } from './types';
 
 export const App: React.FC = () => {
   const {
@@ -49,13 +52,36 @@ export const App: React.FC = () => {
     return unsub;
   }, [isAuthenticated, user.isGuest, loginUser]);
 
-  // Periodic reminder checking (every 30 seconds)
+  // Periodic reminder and deadline checking (every 10 seconds)
   useEffect(() => {
+    const handleDeadline = (mission: Mission) => {
+      try {
+        soundService.playMissionClear();
+        hapticService.heavy();
+      } catch {}
+
+      setSystemModal({
+        id: `deadline_${mission.id}_${Date.now()}`,
+        type: 'system_alert',
+        title: 'DEADLINE REACHED',
+        subtitle: 'IMMEDIATE ACTION REQUIRED',
+        message: `Mission "${mission.title}" deadline has arrived! Complete this mission now to claim +${mission.xpReward} XP.`,
+        xp: mission.xpReward,
+        missionId: mission.id,
+        isDeadlineAlert: true,
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    // Run immediate evaluation
+    notificationService.checkMissionReminders(missions, settings, handleDeadline);
+
     const interval = setInterval(() => {
-      notificationService.checkMissionReminders(missions, settings);
-    }, 30000);
+      notificationService.checkMissionReminders(missions, settings, handleDeadline);
+    }, 10000);
+
     return () => clearInterval(interval);
-  }, [missions, settings]);
+  }, [missions, settings, setSystemModal]);
 
   return (
     <MobileShell>

@@ -698,3 +698,7 @@ stepCounterService.setOnMilestoneAwarded((award) => {
     },
   });
 });
+
+if (typeof window !== 'undefined') {
+  (window as any).useAppStore = useAppStore;
+}
