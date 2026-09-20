@@ -1,4 +1,4 @@
-import { User, Mission, FocusSession, Achievement, XpTransaction } from '../types';
+import { User, Mission, FocusSession, Achievement, XpTransaction, Note } from '../types';
 import { DatabaseState } from '../database/db';
 import { getSupabase, isSupabaseConfigured } from './supabaseClient';
 import { authService } from './authService';
@@ -11,6 +11,7 @@ export interface MigrationResult {
   mergedFocusSessions: FocusSession[];
   mergedAchievements: Achievement[];
   mergedXpTransactions: XpTransaction[];
+  mergedNotes: Note[];
   migratedCount: number;
 }
 
@@ -28,29 +29,35 @@ export class MigrationService {
     const guestFocus = localState.focusSessions || [];
     const guestAchievements = localState.achievements || [];
     const guestXpTx = localState.xpTransactions || [];
+    const guestNotes = localState.notes || [];
     const guestUser = localState.user;
 
     let cloudMissions: Mission[] = [];
     let cloudFocus: FocusSession[] = [];
     let cloudAchievements: Achievement[] = [];
     let cloudXpTx: XpTransaction[] = [];
+    let cloudNotes: Note[] = [];
     let cloudProfile: any = null;
 
     // 1. Fetch existing cloud data if Supabase is connected
     if (supabase && isSupabaseConfigured() && (typeof navigator === 'undefined' || navigator.onLine)) {
       try {
-        const [profRes, missRes, focusRes, achRes, xpRes] = await Promise.all([
+        const [profRes, missRes, focusRes, achRes, xpRes, notesRes] = await Promise.all([
           supabase.from('profiles').select('*').eq('id', authenticatedUser.id).maybeSingle(),
           supabase.from('missions').select('*').eq('user_id', authenticatedUser.id),
           supabase.from('focus_sessions').select('*').eq('user_id', authenticatedUser.id),
           supabase.from('user_achievements').select('*').eq('user_id', authenticatedUser.id),
           supabase.from('xp_transactions').select('*').eq('user_id', authenticatedUser.id),
+          supabase.from('notes').select('*').eq('user_id', authenticatedUser.id),
         ]);
 
         cloudProfile = profRes.data;
 
         if (missRes.data) {
           cloudMissions = missRes.data.map((m: any) => this.mapCloudMissionToLocal(m));
+        }
+        if (notesRes?.data) {
+          cloudNotes = notesRes.data.map((n: any) => this.mapCloudNoteToLocal(n));
         }
         if (focusRes.data) {
           cloudFocus = focusRes.data.map((f: any) => ({
@@ -110,6 +117,9 @@ export class MigrationService {
         }
         if (vaultData.xpTransactions && vaultData.xpTransactions.length > 0) {
           cloudXpTx = vaultData.xpTransactions;
+        }
+        if (vaultData.notes && vaultData.notes.length > 0) {
+          cloudNotes = vaultData.notes;
         }
       }
     }
@@ -222,7 +232,20 @@ export class MigrationService {
       return ga;
     });
 
-    // 7. Push merged records to Supabase in background
+    // 7. Merge Notes (deduplicate by id or title)
+    const noteMap = new Map<string, Note>();
+    cloudNotes.forEach((n) => noteMap.set(n.id, n));
+    guestNotes.forEach((n: Note) => {
+      if (!noteMap.has(n.id)) {
+        noteMap.set(n.id, {
+          ...n,
+          userId: authenticatedUser.id,
+        });
+      }
+    });
+    const mergedNotes = Array.from(noteMap.values());
+
+    // 8. Push merged records to Supabase in background
     if (supabase && isSupabaseConfigured() && (typeof navigator === 'undefined' || navigator.onLine)) {
       this.uploadMergedToCloud(supabase, authenticatedUser.id, {
         mergedUser,
@@ -230,6 +253,7 @@ export class MigrationService {
         mergedFocusSessions,
         mergedAchievements,
         mergedXpTransactions,
+        mergedNotes,
       }).catch((err) => console.warn('Background migration sync encountered:', err));
     }
 
@@ -240,6 +264,7 @@ export class MigrationService {
       mergedFocusSessions,
       mergedAchievements,
       mergedXpTransactions,
+      mergedNotes,
       migratedCount,
     };
   }
@@ -312,9 +337,42 @@ export class MigrationService {
           created_at: tx.timestamp,
         }, { onConflict: 'unique_event_id' });
       }
+
+      // Batch upsert notes
+      if (merged.mergedNotes && merged.mergedNotes.length > 0) {
+        for (const n of merged.mergedNotes) {
+          await supabase.from('notes').upsert({
+            id: n.id,
+            user_id: userId,
+            title: n.title,
+            content: n.content,
+            category: n.category,
+            color: n.color,
+            pinned: n.pinned,
+            tags: n.tags,
+            created_at: n.createdAt,
+            updated_at: n.updatedAt,
+          });
+        }
+      }
     } catch (err) {
       console.warn('Migration cloud push partially completed:', err);
     }
+  }
+
+  private mapCloudNoteToLocal(n: any): Note {
+    return {
+      id: n.id,
+      userId: n.user_id,
+      title: n.title,
+      content: n.content,
+      category: n.category || 'INTEL',
+      color: n.color || 'cyan',
+      pinned: !!n.pinned,
+      tags: n.tags || [],
+      createdAt: n.created_at || new Date().toISOString(),
+      updatedAt: n.updated_at || new Date().toISOString(),
+    };
   }
 
   private mapCloudMissionToLocal(m: any): Mission {

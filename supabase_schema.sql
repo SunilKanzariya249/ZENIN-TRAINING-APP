@@ -126,6 +126,24 @@ create table if not exists public.sync_metadata (
   client_version text default '1.0.0'
 );
 
+-- 9. NOTES TABLE
+create table if not exists public.notes (
+  id text primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  content text default '',
+  category text not null default 'INTEL',
+  color text not null default 'cyan',
+  pinned boolean not null default false,
+  tags text[] default array[]::text[],
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_notes_user_id on public.notes(user_id);
+create index if not exists idx_notes_category on public.notes(category);
+create index if not exists idx_notes_pinned on public.notes(pinned);
+
 -- ==============================================================================
 -- STRICT ROW LEVEL SECURITY (RLS) POLICIES
 -- Every query is strictly isolated to the authenticated user via auth.uid()
@@ -138,6 +156,7 @@ alter table public.user_achievements enable row level security;
 alter table public.xp_transactions enable row level security;
 alter table public.user_settings enable row level security;
 alter table public.sync_metadata enable row level security;
+alter table public.notes enable row level security;
 
 -- Profiles Policies
 drop policy if exists "Users can view own profile" on public.profiles;
@@ -210,6 +229,15 @@ drop policy if exists "Users can manage own sync metadata" on public.sync_metada
 create policy "Users can manage own sync metadata" on public.sync_metadata
   for all using (auth.uid() = user_id);
 
+-- Notes Policies
+drop policy if exists "Users can view own notes" on public.notes;
+create policy "Users can view own notes" on public.notes
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own notes" on public.notes;
+create policy "Users can manage own notes" on public.notes
+  for all using (auth.uid() = user_id);
+
 -- ==============================================================================
 -- 9. PERMISSIONS & ROLE GRANTS
 -- Grants access to public tables to Supabase's authenticated and anon roles.
@@ -228,6 +256,7 @@ grant all on table public.user_achievements to anon, authenticated;
 grant all on table public.xp_transactions to anon, authenticated;
 grant all on table public.user_settings to anon, authenticated;
 grant all on table public.sync_metadata to anon, authenticated;
+grant all on table public.notes to anon, authenticated;
 
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant all on sequences to anon, authenticated;

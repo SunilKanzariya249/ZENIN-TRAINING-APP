@@ -1,4 +1,4 @@
-import { User, Mission, Category, Achievement, FocusSession, UserSettings, XpTransaction } from '../types';
+import { User, Mission, Category, Achievement, FocusSession, UserSettings, XpTransaction, Note } from '../types';
 import { INITIAL_USER, INITIAL_SETTINGS, SAMPLE_MISSIONS, SAMPLE_FOCUS_SESSIONS, SAMPLE_XP_TRANSACTIONS } from '../constants/seedData';
 import { DEFAULT_CATEGORIES } from '../constants/categories';
 import { ACHIEVEMENTS } from '../constants/achievements';
@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   FOCUS_SESSIONS: 'zenin_focus_sessions_v1',
   SETTINGS: 'zenin_settings_v1',
   XP_TRANSACTIONS: 'zenin_xp_transactions_v1',
+  NOTES: 'zenin_notes_v1',
   IS_AUTHENTICATED: 'zenin_auth_status_v1',
   HAS_ONBOARDED: 'zenin_has_onboarded_v1',
 };
@@ -42,30 +43,46 @@ export interface DatabaseState {
   focusSessions: FocusSession[];
   settings: UserSettings;
   xpTransactions: XpTransaction[];
+  notes: Note[];
   isAuthenticated: boolean;
   hasOnboarded: boolean;
 }
 
 export class StorageEngine {
+  private memoryStore: Record<string, string> = {};
+
+  private getStorage(): { getItem(key: string): string | null; setItem(key: string, val: string): void; removeItem(key: string): void } {
+    if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+    if (typeof localStorage !== 'undefined') return localStorage;
+    return {
+      getItem: (key: string) => this.memoryStore[key] || null,
+      setItem: (key: string, val: string) => {
+        this.memoryStore[key] = val;
+      },
+      removeItem: (key: string) => {
+        delete this.memoryStore[key];
+      },
+    };
+  }
+
   private isAvailable(): boolean {
-    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+    return true;
   }
 
   public loadState(): DatabaseState {
-    if (!this.isAvailable()) {
-      return this.getInitialState();
-    }
+    const storage = this.getStorage();
 
     try {
-      const userRaw = localStorage.getItem(STORAGE_KEYS.USER);
-      const missionsRaw = localStorage.getItem(STORAGE_KEYS.MISSIONS);
-      const categoriesRaw = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      const achievementsRaw = localStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS);
-      const focusSessionsRaw = localStorage.getItem(STORAGE_KEYS.FOCUS_SESSIONS);
-      const settingsRaw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      const xpTxRaw = localStorage.getItem(STORAGE_KEYS.XP_TRANSACTIONS);
-      const isAuthRaw = localStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
-      const hasOnboardedRaw = localStorage.getItem(STORAGE_KEYS.HAS_ONBOARDED);
+      const userRaw = storage.getItem(STORAGE_KEYS.USER);
+      const missionsRaw = storage.getItem(STORAGE_KEYS.MISSIONS);
+      const categoriesRaw = storage.getItem(STORAGE_KEYS.CATEGORIES);
+      const achievementsRaw = storage.getItem(STORAGE_KEYS.ACHIEVEMENTS);
+      const focusSessionsRaw = storage.getItem(STORAGE_KEYS.FOCUS_SESSIONS);
+      const settingsRaw = storage.getItem(STORAGE_KEYS.SETTINGS);
+      const xpTxRaw = storage.getItem(STORAGE_KEYS.XP_TRANSACTIONS);
+      const notesRaw = storage.getItem(STORAGE_KEYS.NOTES);
+      const isAuthRaw = storage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
+      const hasOnboardedRaw = storage.getItem(STORAGE_KEYS.HAS_ONBOARDED);
 
       return {
         user: userRaw ? JSON.parse(userRaw) : DEFAULT_GUEST_USER,
@@ -75,6 +92,7 @@ export class StorageEngine {
         focusSessions: focusSessionsRaw ? JSON.parse(focusSessionsRaw) : SAMPLE_FOCUS_SESSIONS,
         settings: settingsRaw ? JSON.parse(settingsRaw) : INITIAL_SETTINGS,
         xpTransactions: xpTxRaw ? JSON.parse(xpTxRaw) : SAMPLE_XP_TRANSACTIONS,
+        notes: notesRaw ? JSON.parse(notesRaw) : [],
         isAuthenticated: isAuthRaw !== null ? JSON.parse(isAuthRaw) : false,
         hasOnboarded: hasOnboardedRaw !== null ? JSON.parse(hasOnboardedRaw) : true,
       };
@@ -85,17 +103,19 @@ export class StorageEngine {
   }
 
   public saveState(state: DatabaseState): void {
-    if (!this.isAvailable()) return;
+    const storage = this.getStorage();
+    if (!storage) return;
     try {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
-      localStorage.setItem(STORAGE_KEYS.MISSIONS, JSON.stringify(state.missions));
-      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(state.categories));
-      localStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(state.achievements));
-      localStorage.setItem(STORAGE_KEYS.FOCUS_SESSIONS, JSON.stringify(state.focusSessions));
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
-      localStorage.setItem(STORAGE_KEYS.XP_TRANSACTIONS, JSON.stringify(state.xpTransactions));
-      localStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, JSON.stringify(state.isAuthenticated));
-      localStorage.setItem(STORAGE_KEYS.HAS_ONBOARDED, JSON.stringify(state.hasOnboarded));
+      storage.setItem(STORAGE_KEYS.USER, JSON.stringify(state.user));
+      storage.setItem(STORAGE_KEYS.MISSIONS, JSON.stringify(state.missions));
+      storage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(state.categories));
+      storage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(state.achievements));
+      storage.setItem(STORAGE_KEYS.FOCUS_SESSIONS, JSON.stringify(state.focusSessions));
+      storage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
+      storage.setItem(STORAGE_KEYS.XP_TRANSACTIONS, JSON.stringify(state.xpTransactions));
+      storage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(state.notes || []));
+      storage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, JSON.stringify(state.isAuthenticated));
+      storage.setItem(STORAGE_KEYS.HAS_ONBOARDED, JSON.stringify(state.hasOnboarded));
 
       // If user is authenticated with a phone number, keep their database vault record updated
       if (state.user && !state.user.isGuest && state.user.phone) {
@@ -115,14 +135,16 @@ export class StorageEngine {
       focusSessions: [],
       settings: INITIAL_SETTINGS,
       xpTransactions: [],
+      notes: [],
       isAuthenticated: false,
       hasOnboarded: true,
     };
   }
 
   public clearAllData(): void {
-    if (!this.isAvailable()) return;
-    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    const storage = this.getStorage();
+    Object.values(STORAGE_KEYS).forEach((key) => storage.removeItem(key));
+    this.memoryStore = {};
   }
 }
 

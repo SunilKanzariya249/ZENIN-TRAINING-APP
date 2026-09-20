@@ -5,6 +5,8 @@ import { StreakBadge } from '../../components/rpg/StreakBadge';
 import { SwipeableMissionCard } from '../../components/missions/SwipeableMissionCard';
 import { FieldTelemetryWidget } from '../../components/telemetry/FieldTelemetryWidget';
 import { AlarmManagerModal } from '../../components/alarm/AlarmManagerModal';
+import { NotesModal } from '../../components/notes/NotesModal';
+import { NoteEditorModal } from '../../components/notes/NoteEditorModal';
 import { format, isToday, parseISO } from 'date-fns';
 import {
   Plus,
@@ -17,6 +19,7 @@ import {
   Flame,
   CheckCircle2,
   AlarmClock,
+  FileText,
 } from 'lucide-react';
 
 export const HomeScreen: React.FC = () => {
@@ -33,6 +36,10 @@ export const HomeScreen: React.FC = () => {
     toggleFavorite,
     setActiveFocusMissionId,
     setDailyBriefingOpen,
+    notesModalOpen,
+    setNotesModalOpen,
+    editingNote,
+    setEditingNote,
   } = useAppStore();
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -309,12 +316,17 @@ export const HomeScreen: React.FC = () => {
           QUICK PROTOCOLS
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
           {[
             {
               label: 'CREATE',
               icon: <Plus size={18} color="var(--accent-cyan)" />,
               action: () => setCreateMissionOpen(true),
+            },
+            {
+              label: 'NOTES',
+              icon: <FileText size={18} color="#06B6D4" />,
+              action: () => setNotesModalOpen(true),
             },
             {
               label: 'ALARM',
@@ -463,6 +475,8 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {showAlarmManager && <AlarmManagerModal onClose={() => setShowAlarmManager(false)} />}
+      {notesModalOpen && <NotesModal />}
+      {editingNote !== null && <NoteEditorModal note={editingNote} onClose={() => setEditingNote(null)} />}
     </div>
   );
 };

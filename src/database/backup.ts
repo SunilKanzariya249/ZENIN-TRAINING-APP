@@ -35,6 +35,10 @@ export function parseAndValidateBackup(jsonString: string): { valid: boolean; st
       return { valid: false, error: 'Incomplete backup structure: missing user or missions' };
     }
 
+    if (!Array.isArray(data.notes)) {
+      data.notes = [];
+    }
+
     return { valid: true, state: data as DatabaseState };
   } catch (err) {
     return { valid: false, error: `JSON Parse error: ${(err as Error).message}` };

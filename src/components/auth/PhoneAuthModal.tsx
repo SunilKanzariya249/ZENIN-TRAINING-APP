@@ -124,6 +124,7 @@ export const PhoneAuthModal: React.FC<PhoneAuthModalProps> = ({
         focusSessions: store.focusSessions,
         achievements: store.achievements,
         xpTransactions: store.xpTransactions,
+        notes: store.notes || [],
       };
 
       const migrationResult = await migrationService.migrateGuestToAccount(res.user, currentState);
@@ -137,6 +138,7 @@ export const PhoneAuthModal: React.FC<PhoneAuthModalProps> = ({
         focusSessions: migrationResult.mergedFocusSessions,
         achievements: migrationResult.mergedAchievements,
         xpTransactions: migrationResult.mergedXpTransactions,
+        notes: migrationResult.mergedNotes || [],
         categories: store.categories,
         settings: store.settings,
         hasOnboarded: true,

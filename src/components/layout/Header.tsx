@@ -1,10 +1,10 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { RankBadge } from '../rpg/RankBadge';
-import { Bell, Sparkles } from 'lucide-react';
+import { Bell, Sparkles, FileText } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { user, setDailyBriefingOpen, setEveningReviewOpen } = useAppStore();
+  const { user, notes, setNotesModalOpen, setDailyBriefingOpen, setEveningReviewOpen } = useAppStore();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -91,9 +91,53 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Right controls: Rank Badge & Briefing Beacon */}
+      {/* Right controls: Rank Badge, Notes quick access & Briefing Beacon */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <RankBadge level={user.level} size="sm" />
+
+        <button
+          onClick={() => setNotesModalOpen(true)}
+          title="Tactical Notes & Logs"
+          style={{
+            position: 'relative',
+            background: 'rgba(6, 182, 212, 0.12)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            borderRadius: '8px',
+            padding: '6px',
+            color: 'var(--accent-cyan)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s',
+          }}
+        >
+          <FileText size={16} />
+          {notes && notes.length > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                minWidth: '14px',
+                height: '14px',
+                borderRadius: '7px',
+                backgroundColor: 'var(--accent-cyan)',
+                color: '#000',
+                fontSize: '9px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-mono)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 2px',
+                boxShadow: '0 0 6px rgba(6, 182, 212, 0.6)',
+              }}
+            >
+              {notes.length > 99 ? '99+' : notes.length}
+            </span>
+          )}
+        </button>
 
         <button
           onClick={() => (isNight ? setEveningReviewOpen(true) : setDailyBriefingOpen(true))}

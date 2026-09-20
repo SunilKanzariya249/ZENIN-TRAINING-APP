@@ -26,6 +26,7 @@ export interface UserVaultRecord {
     xpTransactions?: any[];
     settings?: any;
     categories?: any[];
+    notes?: any[];
   };
 }
 
@@ -207,6 +208,7 @@ class AuthService {
         focusSessions: [],
         achievements: [],
         xpTransactions: [],
+        notes: [],
       },
     };
     // Also alias by raw digits
@@ -257,11 +259,12 @@ class AuthService {
             .eq('id', data.user.id)
             .maybeSingle();
 
-          const [missionsRes, focusRes, achRes, xpRes] = await Promise.all([
+          const [missionsRes, focusRes, achRes, xpRes, notesRes] = await Promise.all([
             supabase.from('missions').select('*').eq('user_id', data.user.id),
             supabase.from('focus_sessions').select('*').eq('user_id', data.user.id),
             supabase.from('user_achievements').select('*').eq('user_id', data.user.id),
             supabase.from('xp_transactions').select('*').eq('user_id', data.user.id),
+            supabase.from('notes').select('*').eq('user_id', data.user.id),
           ]);
 
           const hunterUser: User = {
@@ -293,6 +296,7 @@ class AuthService {
               focusSessions: focusRes.data || [],
               achievements: achRes.data || [],
               xpTransactions: xpRes.data || [],
+              notes: notesRes?.data || [],
             },
           };
           vault[cleanDigits] = vault[formattedPhone];
@@ -361,6 +365,7 @@ class AuthService {
         xpTransactions: state.xpTransactions || [],
         settings: state.settings,
         categories: state.categories,
+        notes: state.notes || [],
       };
       vault[cleanPhone] = existing;
       if (cleanDigits) vault[cleanDigits] = existing;

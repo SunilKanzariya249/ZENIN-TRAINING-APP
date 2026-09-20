@@ -235,3 +235,19 @@ export interface Alarm {
   vibrate: boolean;
   createdAt: string;
 }
+
+export type NoteCategory = 'INTEL' | 'TACTICAL' | 'TRAINING' | 'PERSONAL';
+export type NoteColor = 'cyan' | 'violet' | 'emerald' | 'amber' | 'rose';
+
+export interface Note {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  category: NoteCategory;
+  color: NoteColor;
+  pinned: boolean;
+  tags: string[];
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+}

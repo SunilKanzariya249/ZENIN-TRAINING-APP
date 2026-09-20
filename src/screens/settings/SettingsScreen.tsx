@@ -49,6 +49,7 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
     achievements,
     focusSessions,
     xpTransactions,
+    notes,
     isAuthenticated,
     hasOnboarded,
   } = useAppStore();
@@ -90,6 +91,7 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
       focusSessions,
       settings,
       xpTransactions,
+      notes: notes || [],
       isAuthenticated,
       hasOnboarded,
     };

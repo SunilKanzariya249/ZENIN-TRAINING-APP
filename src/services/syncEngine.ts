@@ -5,7 +5,7 @@ import { calculateProductivityScore } from './productivityScore';
 
 export interface OfflineMutation {
   id: string;
-  table: 'profiles' | 'missions' | 'focus_sessions' | 'user_achievements' | 'xp_transactions' | 'user_settings';
+  table: 'profiles' | 'missions' | 'focus_sessions' | 'user_achievements' | 'xp_transactions' | 'user_settings' | 'notes';
   action: 'upsert' | 'delete';
   payload: any;
   timestamp: number;

@@ -9,6 +9,7 @@ import {
   UserSettings,
   XpTransaction,
   SystemNotification,
+  Note,
 } from '../types';
 import { storageEngine, DatabaseState } from '../database/db';
 import { awardUserXp } from '../services/xpEngine';
@@ -35,6 +36,8 @@ interface AppStoreState extends DatabaseState {
   eveningReviewOpen: boolean;
   authModalOpen: boolean;
   authModalMode: 'login' | 'signup';
+  notesModalOpen: boolean;
+  editingNote: Note | null;
 
   // Actions
   setActiveTab: (tab: NavTab) => void;
@@ -45,6 +48,8 @@ interface AppStoreState extends DatabaseState {
   setDailyBriefingOpen: (open: boolean) => void;
   setEveningReviewOpen: (open: boolean) => void;
   setAuthModal: (open: boolean, mode?: 'login' | 'signup') => void;
+  setNotesModalOpen: (open: boolean) => void;
+  setEditingNote: (note: Note | null) => void;
 
   // Auth & Onboarding
   loginUser: (user: User) => void;
@@ -76,6 +81,12 @@ interface AppStoreState extends DatabaseState {
   addCategory: (category: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
 
+  // Notes CRUD
+  addNote: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { id?: string; userId?: string }) => Note;
+  updateNote: (id: string, updates: Partial<Note>) => void;
+  deleteNote: (id: string) => void;
+  togglePinNote: (id: string) => void;
+
   // Settings & Storage
   updateSettings: (partial: Partial<UserSettings>) => void;
   clearCompletedMissions: () => void;
@@ -100,6 +111,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   eveningReviewOpen: false,
   authModalOpen: false,
   authModalMode: 'login',
+  notesModalOpen: false,
+  editingNote: null,
 
   setActiveTab: (tab) => {
     soundService.playClick();
@@ -122,6 +135,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setAuthModal: (open, mode = 'login') => {
     soundService.playClick();
     set({ authModalOpen: open, authModalMode: mode });
+  },
+  setNotesModalOpen: (open) => {
+    soundService.playClick();
+    set({ notesModalOpen: open });
+  },
+  setEditingNote: (note) => {
+    soundService.playClick();
+    set({ editingNote: note });
   },
 
   loginUser: (user) => {
@@ -621,6 +642,88 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const newCategories = get().categories.filter((c) => c.id !== id);
     set({ categories: newCategories });
     storageEngine.saveState({ ...get(), categories: newCategories });
+  },
+
+  addNote: (noteData) => {
+    const now = new Date().toISOString();
+    const newNote: Note = {
+      id: noteData.id || `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      userId: noteData.userId || get().user.id,
+      title: noteData.title.trim(),
+      content: noteData.content || '',
+      category: noteData.category || 'INTEL',
+      color: noteData.color || 'cyan',
+      pinned: noteData.pinned ?? false,
+      tags: noteData.tags || [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const newNotes = [newNote, ...get().notes];
+    set({ notes: newNotes, editingNote: null });
+    storageEngine.saveState({ ...get(), notes: newNotes });
+
+    // Enqueue cloud sync mutation
+    syncEngine.enqueue('notes', 'upsert', {
+      id: newNote.id,
+      user_id: newNote.userId,
+      title: newNote.title,
+      content: newNote.content,
+      category: newNote.category,
+      color: newNote.color,
+      pinned: newNote.pinned,
+      tags: newNote.tags,
+      created_at: newNote.createdAt,
+      updated_at: newNote.updatedAt,
+    });
+
+    soundService.playClick();
+    hapticService.light();
+    return newNote;
+  },
+
+  updateNote: (id, updates) => {
+    const now = new Date().toISOString();
+    const newNotes = get().notes.map((n) =>
+      n.id === id ? { ...n, ...updates, updatedAt: now } : n
+    );
+    set({ notes: newNotes, editingNote: null });
+    storageEngine.saveState({ ...get(), notes: newNotes });
+
+    const updated = newNotes.find((n) => n.id === id);
+    if (updated) {
+      syncEngine.enqueue('notes', 'upsert', {
+        id: updated.id,
+        user_id: updated.userId,
+        title: updated.title,
+        content: updated.content,
+        category: updated.category,
+        color: updated.color,
+        pinned: updated.pinned,
+        tags: updated.tags,
+        created_at: updated.createdAt,
+        updated_at: updated.updatedAt,
+      });
+    }
+
+    soundService.playClick();
+    hapticService.light();
+  },
+
+  deleteNote: (id) => {
+    const newNotes = get().notes.filter((n) => n.id !== id);
+    set({ notes: newNotes });
+    storageEngine.saveState({ ...get(), notes: newNotes });
+
+    syncEngine.enqueue('notes', 'delete', { id });
+    soundService.playClick();
+    hapticService.medium();
+  },
+
+  togglePinNote: (id) => {
+    const target = get().notes.find((n) => n.id === id);
+    if (!target) return;
+    get().updateNote(id, { pinned: !target.pinned });
   },
 
   updateSettings: (partial) => {
