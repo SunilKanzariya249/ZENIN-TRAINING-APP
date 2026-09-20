@@ -14,6 +14,7 @@ import { DailyBriefingModal } from './screens/briefing/DailyBriefingModal';
 import { EveningReviewModal } from './screens/briefing/EveningReviewModal';
 import { SystemModal } from './components/rpg/SystemModal';
 import { PhoneAuthModal } from './components/auth/PhoneAuthModal';
+import { AlarmRingingModal } from './components/alarm/AlarmRingingModal';
 import { notificationService } from './notifications/notificationService';
 import { authService } from './services/authService';
 import { syncEngine } from './services/syncEngine';
@@ -88,6 +89,7 @@ export const App: React.FC = () => {
         notification={systemModal}
         onDismiss={() => setSystemModal(null)}
       />
+      <AlarmRingingModal />
     </MobileShell>
   );
 };

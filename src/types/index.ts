@@ -211,3 +211,24 @@ export interface ProductivityStats {
   mostProductiveHour: string;
   averageTasksPerDay: number;
 }
+
+export type RingtoneId = 'awakening' | 'cyber_siren' | 'shadow_gate' | 'pulse_radar' | 'apex_fanfare';
+
+export interface RingtoneOption {
+  id: RingtoneId;
+  name: string;
+  subtitle: string;
+  category: 'RPG' | 'TACTICAL' | 'AMBIENT';
+}
+
+export interface Alarm {
+  id: string;
+  time: string; // "HH:mm" (24-hour format)
+  label: string;
+  enabled: boolean;
+  days: number[]; // [0=Sun, 1=Mon, ..., 6=Sat], empty = once
+  ringtone: RingtoneId;
+  snoozeMinutes: number;
+  vibrate: boolean;
+  createdAt: string;
+}

@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { downloadBackupFile, parseAndValidateBackup } from '../../database/backup';
 import { notificationService } from '../../notifications/notificationService';
 import { authService } from '../../services/authService';
 import { soundService } from '../../services/soundService';
 import { hapticService } from '../../services/hapticService';
+import { alarmAudioService, AVAILABLE_RINGTONES } from '../../services/alarmAudioService';
+import { RingtoneId } from '../../types';
 import {
   X,
   Volume2,
@@ -27,6 +29,10 @@ import {
   Footprints,
   Thermometer,
   Activity,
+  AlarmClock,
+  Play,
+  Square,
+  Music,
 } from 'lucide-react';
 
 export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -51,7 +57,24 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [previewingRingtone, setPreviewingRingtone] = useState<RingtoneId | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      alarmAudioService.stopRingtone();
+    };
+  }, []);
+
+  const toggleRingtonePreview = (id: RingtoneId) => {
+    if (previewingRingtone === id) {
+      alarmAudioService.stopRingtone();
+      setPreviewingRingtone(null);
+    } else {
+      alarmAudioService.previewRingtone(id, 8);
+      setPreviewingRingtone(id);
+    }
+  };
 
   const showStatus = (msg: string) => {
     setStatusMessage(msg);
@@ -318,6 +341,75 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 style={{ width: '16px', height: '16px', accentColor: 'var(--accent-cyan)' }}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Alarm Protocols & Synthesized Ringtones */}
+        <div className="glass-panel" style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <AlarmClock size={16} color="#F59E0B" />
+            <h3 style={{ fontSize: '13px', fontFamily: 'var(--font-heading)', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+              ALARM PROTOCOLS & RINGTONES
+            </h3>
+          </div>
+
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 14px' }}>
+            Preview real-time synthesized acoustic wake patterns for field missions and morning alerts.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {AVAILABLE_RINGTONES.map((rt) => {
+              const isPlaying = previewingRingtone === rt.id;
+              return (
+                <div
+                  key={rt.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: isPlaying ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                    border: isPlaying ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.06)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Music size={15} color={isPlaying ? '#F59E0B' : 'var(--text-muted)'} />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: isPlaying ? '#F59E0B' : '#FFFFFF' }}>
+                        {rt.name}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {rt.subtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleRingtonePreview(rt.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      background: isPlaying ? '#EF4444' : 'rgba(245, 158, 11, 0.2)',
+                      border: isPlaying ? '1px solid #EF4444' : '1px solid #F59E0B',
+                      color: '#FFFFFF',
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isPlaying ? <Square size={11} fill="#FFFFFF" /> : <Play size={11} fill="#F59E0B" />}
+                    <span>{isPlaying ? 'STOP' : 'TEST'}</span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 

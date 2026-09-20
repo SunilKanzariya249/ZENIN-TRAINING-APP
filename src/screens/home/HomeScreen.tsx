@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { XPProgressBar } from '../../components/rpg/XPProgressBar';
 import { StreakBadge } from '../../components/rpg/StreakBadge';
 import { SwipeableMissionCard } from '../../components/missions/SwipeableMissionCard';
 import { FieldTelemetryWidget } from '../../components/telemetry/FieldTelemetryWidget';
+import { AlarmManagerModal } from '../../components/alarm/AlarmManagerModal';
 import { format, isToday, parseISO } from 'date-fns';
 import {
   Plus,
@@ -15,9 +16,11 @@ import {
   Target,
   Flame,
   CheckCircle2,
+  AlarmClock,
 } from 'lucide-react';
 
 export const HomeScreen: React.FC = () => {
+  const [showAlarmManager, setShowAlarmManager] = useState(false);
   const {
     user,
     missions,
@@ -306,12 +309,17 @@ export const HomeScreen: React.FC = () => {
           QUICK PROTOCOLS
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
           {[
             {
               label: 'CREATE',
               icon: <Plus size={18} color="var(--accent-cyan)" />,
               action: () => setCreateMissionOpen(true),
+            },
+            {
+              label: 'ALARM',
+              icon: <AlarmClock size={18} color="#F59E0B" />,
+              action: () => setShowAlarmManager(true),
             },
             {
               label: 'CALENDAR',
@@ -320,7 +328,7 @@ export const HomeScreen: React.FC = () => {
             },
             {
               label: 'FOCUS',
-              icon: <Clock size={18} color="#F59E0B" />,
+              icon: <Clock size={18} color="#EC4899" />,
               action: () => {
                 setActiveTab('statistics'); // Focus can be triggered from header or stats
                 setActiveFocusMissionId(highPriorityMission?.id || null);
@@ -453,6 +461,8 @@ export const HomeScreen: React.FC = () => {
           })
         )}
       </div>
+
+      {showAlarmManager && <AlarmManagerModal onClose={() => setShowAlarmManager(false)} />}
     </div>
   );
 };
