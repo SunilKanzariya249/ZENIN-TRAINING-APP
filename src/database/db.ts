@@ -2,6 +2,7 @@ import { User, Mission, Category, Achievement, FocusSession, UserSettings, XpTra
 import { INITIAL_USER, INITIAL_SETTINGS, SAMPLE_MISSIONS, SAMPLE_FOCUS_SESSIONS, SAMPLE_XP_TRANSACTIONS } from '../constants/seedData';
 import { DEFAULT_CATEGORIES } from '../constants/categories';
 import { ACHIEVEMENTS } from '../constants/achievements';
+import { authService } from '../services/authService';
 
 const STORAGE_KEYS = {
   USER: 'zenin_user_v1',
@@ -13,6 +14,24 @@ const STORAGE_KEYS = {
   XP_TRANSACTIONS: 'zenin_xp_transactions_v1',
   IS_AUTHENTICATED: 'zenin_auth_status_v1',
   HAS_ONBOARDED: 'zenin_has_onboarded_v1',
+};
+
+const DEFAULT_GUEST_USER: User = {
+  id: 'hunter-guest-01',
+  name: 'Novice Hunter',
+  email: 'guest@zenin.network',
+  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  level: 1,
+  currentXp: 0,
+  totalXpEarned: 0,
+  currentStreak: 0,
+  bestStreak: 0,
+  lastActiveDate: new Date().toISOString().slice(0, 10),
+  streakFreezeAvailable: 1,
+  totalMissionsCompleted: 0,
+  totalFocusMinutes: 0,
+  createdAt: new Date().toISOString().slice(0, 10),
+  isGuest: true,
 };
 
 export interface DatabaseState {
@@ -49,15 +68,15 @@ export class StorageEngine {
       const hasOnboardedRaw = localStorage.getItem(STORAGE_KEYS.HAS_ONBOARDED);
 
       return {
-        user: userRaw ? JSON.parse(userRaw) : INITIAL_USER,
+        user: userRaw ? JSON.parse(userRaw) : DEFAULT_GUEST_USER,
         missions: missionsRaw ? JSON.parse(missionsRaw) : SAMPLE_MISSIONS,
         categories: categoriesRaw ? JSON.parse(categoriesRaw) : DEFAULT_CATEGORIES,
         achievements: achievementsRaw ? JSON.parse(achievementsRaw) : ACHIEVEMENTS,
         focusSessions: focusSessionsRaw ? JSON.parse(focusSessionsRaw) : SAMPLE_FOCUS_SESSIONS,
         settings: settingsRaw ? JSON.parse(settingsRaw) : INITIAL_SETTINGS,
         xpTransactions: xpTxRaw ? JSON.parse(xpTxRaw) : SAMPLE_XP_TRANSACTIONS,
-        isAuthenticated: isAuthRaw ? JSON.parse(isAuthRaw) : true, // Auto-authenticate demo session
-        hasOnboarded: hasOnboardedRaw ? JSON.parse(hasOnboardedRaw) : true,
+        isAuthenticated: isAuthRaw !== null ? JSON.parse(isAuthRaw) : false,
+        hasOnboarded: hasOnboardedRaw !== null ? JSON.parse(hasOnboardedRaw) : true,
       };
     } catch (err) {
       console.error('Storage parse error, falling back to seed state:', err);
@@ -77,6 +96,11 @@ export class StorageEngine {
       localStorage.setItem(STORAGE_KEYS.XP_TRANSACTIONS, JSON.stringify(state.xpTransactions));
       localStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, JSON.stringify(state.isAuthenticated));
       localStorage.setItem(STORAGE_KEYS.HAS_ONBOARDED, JSON.stringify(state.hasOnboarded));
+
+      // If user is authenticated with a phone number, keep their database vault record updated
+      if (state.user && !state.user.isGuest && state.user.phone) {
+        authService.persistUserDataToVault(state.user.phone, state);
+      }
     } catch (err) {
       console.error('Failed to write state to localStorage:', err);
     }
@@ -84,14 +108,14 @@ export class StorageEngine {
 
   public getInitialState(): DatabaseState {
     return {
-      user: INITIAL_USER,
-      missions: SAMPLE_MISSIONS,
+      user: DEFAULT_GUEST_USER,
+      missions: [],
       categories: DEFAULT_CATEGORIES,
       achievements: ACHIEVEMENTS,
-      focusSessions: SAMPLE_FOCUS_SESSIONS,
+      focusSessions: [],
       settings: INITIAL_SETTINGS,
-      xpTransactions: SAMPLE_XP_TRANSACTIONS,
-      isAuthenticated: true,
+      xpTransactions: [],
+      isAuthenticated: false,
       hasOnboarded: true,
     };
   }

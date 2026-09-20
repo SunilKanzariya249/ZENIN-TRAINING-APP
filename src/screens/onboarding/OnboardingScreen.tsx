@@ -211,7 +211,22 @@ export const OnboardingScreen: React.FC = () => {
       )}
 
       {/* Navigation Controls */}
-      <div style={{ width: '100%', marginTop: '20px' }}>
+      <div style={{ width: '100%', marginTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <button
+          type="button"
+          onClick={handleFinish}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-muted)',
+            fontSize: '11px',
+            fontFamily: 'var(--font-mono)',
+            cursor: 'pointer',
+            padding: '4px',
+          }}
+        >
+          [ SKIP PROTOCOL CALIBRATION → ]
+        </button>
         {step < 4 ? (
           <button
             onClick={() => setStep(step + 1)}

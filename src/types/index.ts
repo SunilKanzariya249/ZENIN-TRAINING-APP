@@ -76,6 +76,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   avatar: string;
   level: number;
   currentXp: number;
@@ -89,6 +90,8 @@ export interface User {
   createdAt: string;
   isGuest?: boolean;
 }
+
+export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error';
 
 export interface Achievement {
   id: string;
@@ -129,6 +132,10 @@ export interface UserSettings {
   weekStartDay: 'sunday' | 'monday';
   dailyMissionGoal: number;
   reducedMotion: boolean;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  autoSyncEnabled?: boolean;
+  lastSyncedAt?: string;
 }
 
 export interface XpTransaction {
@@ -137,6 +144,8 @@ export interface XpTransaction {
   sourceType: 'mission' | 'focus' | 'achievement' | 'streak_bonus';
   amount: number;
   timestamp: string;
+  uniqueEventId?: string;
+  reason?: string;
 }
 
 export interface SystemNotification {

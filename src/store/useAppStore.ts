@@ -18,6 +18,8 @@ import { createNextRecurringMission } from '../services/recurrenceEngine';
 import { soundService } from '../services/soundService';
 import { hapticService } from '../services/hapticService';
 import { notificationService } from '../notifications/notificationService';
+import { syncEngine, buildProfilePayload } from '../services/syncEngine';
+import { authService } from '../services/authService';
 
 export type NavTab = 'home' | 'missions' | 'calendar' | 'statistics' | 'profile';
 
@@ -30,6 +32,8 @@ interface AppStoreState extends DatabaseState {
   activeFocusMissionId: string | null;
   dailyBriefingOpen: boolean;
   eveningReviewOpen: boolean;
+  authModalOpen: boolean;
+  authModalMode: 'login' | 'signup';
 
   // Actions
   setActiveTab: (tab: NavTab) => void;
@@ -39,6 +43,7 @@ interface AppStoreState extends DatabaseState {
   setActiveFocusMissionId: (id: string | null) => void;
   setDailyBriefingOpen: (open: boolean) => void;
   setEveningReviewOpen: (open: boolean) => void;
+  setAuthModal: (open: boolean, mode?: 'login' | 'signup') => void;
 
   // Auth & Onboarding
   loginUser: (user: User) => void;
@@ -91,6 +96,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   activeFocusMissionId: null,
   dailyBriefingOpen: false,
   eveningReviewOpen: false,
+  authModalOpen: false,
+  authModalMode: 'login',
 
   setActiveTab: (tab) => {
     soundService.playClick();
@@ -110,17 +117,24 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setActiveFocusMissionId: (id) => set({ activeFocusMissionId: id }),
   setDailyBriefingOpen: (open) => set({ dailyBriefingOpen: open }),
   setEveningReviewOpen: (open) => set({ eveningReviewOpen: open }),
+  setAuthModal: (open, mode = 'login') => {
+    soundService.playClick();
+    set({ authModalOpen: open, authModalMode: mode });
+  },
 
   loginUser: (user) => {
     const updated = { ...get(), user, isAuthenticated: true };
     storageEngine.saveState(updated);
     set({ user, isAuthenticated: true });
+    // Trigger background cloud sync
+    syncEngine.syncNow(user.id);
   },
 
   logoutUser: () => {
-    const updated = { ...get(), isAuthenticated: false };
+    const guestUser = authService.createGuestUser();
+    const updated = { ...get(), user: guestUser, isAuthenticated: false };
     storageEngine.saveState(updated);
-    set({ isAuthenticated: false });
+    set({ user: guestUser, isAuthenticated: false });
   },
 
   completeOnboarding: (preferences) => {
@@ -164,6 +178,35 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     set({ missions: newMissions, createMissionOpen: false, editingMissionId: null });
     storageEngine.saveState({ ...get(), missions: newMissions });
 
+    // Enqueue cloud sync mutation
+    syncEngine.enqueue('missions', 'upsert', {
+      id: newMission.id,
+      user_id: newMission.userId,
+      title: newMission.title,
+      description: newMission.description,
+      priority: newMission.priority,
+      category_id: newMission.categoryId,
+      status: newMission.status,
+      due_date: newMission.dueDate || null,
+      due_time: newMission.dueTime || null,
+      start_date: newMission.startDate || null,
+      reminder_time: newMission.reminderTime || null,
+      recurrence: newMission.recurrence,
+      recurrence_interval: newMission.recurrenceInterval || 1,
+      xp_reward: newMission.xpReward,
+      custom_xp: newMission.customXp || false,
+      estimated_duration: newMission.estimatedDuration,
+      notes: newMission.notes,
+      subtasks: newMission.subtasks,
+      tags: newMission.tags,
+      attachments: newMission.attachments,
+      favorite: newMission.favorite,
+      archived: newMission.archived,
+      xp_awarded: newMission.xpAwarded,
+      created_at: newMission.createdAt,
+      updated_at: newMission.updatedAt,
+    });
+
     soundService.playClick();
     hapticService.light();
 
@@ -176,11 +219,44 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   updateMission: (id, updates) => {
+    const now = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
     const newMissions = get().missions.map((m) =>
-      m.id === id ? { ...m, ...updates, updatedAt: format(new Date(), 'yyyy-MM-dd HH:mm:ss') } : m
+      m.id === id ? { ...m, ...updates, updatedAt: now } : m
     );
     set({ missions: newMissions, createMissionOpen: false, editingMissionId: null });
     storageEngine.saveState({ ...get(), missions: newMissions });
+
+    const updated = newMissions.find((m) => m.id === id);
+    if (updated) {
+      syncEngine.enqueue('missions', 'upsert', {
+        id: updated.id,
+        user_id: updated.userId,
+        title: updated.title,
+        description: updated.description,
+        priority: updated.priority,
+        category_id: updated.categoryId,
+        status: updated.status,
+        due_date: updated.dueDate || null,
+        due_time: updated.dueTime || null,
+        start_date: updated.startDate || null,
+        reminder_time: updated.reminderTime || null,
+        recurrence: updated.recurrence,
+        recurrence_interval: updated.recurrenceInterval || 1,
+        xp_reward: updated.xpReward,
+        custom_xp: updated.customXp || false,
+        estimated_duration: updated.estimatedDuration,
+        notes: updated.notes,
+        subtasks: updated.subtasks,
+        tags: updated.tags,
+        attachments: updated.attachments,
+        favorite: updated.favorite,
+        archived: updated.archived,
+        xp_awarded: updated.xpAwarded,
+        completed_at: updated.completedAt || null,
+        updated_at: updated.updatedAt,
+      });
+    }
+
     soundService.playClick();
   },
 
@@ -191,6 +267,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       inspectingMissionId: get().inspectingMissionId === id ? null : get().inspectingMissionId,
     });
     storageEngine.saveState({ ...get(), missions: newMissions });
+    syncEngine.enqueue('missions', 'delete', { id });
     soundService.playClick();
   },
 
@@ -280,7 +357,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   // ──────────────────────────────────────────────
-  // CORE RPG MISSION COMPLETION
+  // CORE RPG MISSION COMPLETION (ANTI-CHEAT IDEMPOTENT)
   // ──────────────────────────────────────────────
   completeMission: (id) => {
     const state = get();
@@ -288,7 +365,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     if (!mission || mission.status === 'completed') return;
 
     const completedTimestamp = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
-    const xpToAdd = mission.xpAwarded ? 0 : mission.xpReward;
+    const uniqueEventId = `mission_complete_${mission.id}`;
+
+    // Anti-cheat verification: ensure XP cannot be awarded multiple times for the same mission
+    const alreadyLogged = state.xpTransactions.some(
+      (tx) => tx.uniqueEventId === uniqueEventId || (tx.sourceId === mission.id && tx.sourceType === 'mission')
+    );
+    const xpToAdd = (mission.xpAwarded || alreadyLogged) ? 0 : mission.xpReward;
 
     // 1. Calculate XP & Level Progression
     const xpResult = awardUserXp(state.user, xpToAdd);
@@ -307,6 +390,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
             status: 'completed' as const,
             completedAt: completedTimestamp,
             xpAwarded: true,
+            updatedAt: completedTimestamp,
           }
         : m
     );
@@ -320,16 +404,44 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     // 5. XP Transaction Log
     const newTxList = [...state.xpTransactions];
     if (xpToAdd > 0) {
-      newTxList.push({
+      const txRecord: XpTransaction = {
         id: `tx-${Date.now()}`,
         sourceId: mission.id,
         sourceType: 'mission',
         amount: xpToAdd,
         timestamp: completedTimestamp,
+        uniqueEventId,
+        reason: 'mission_completion',
+      };
+      newTxList.push(txRecord);
+
+      // Enqueue XP transaction sync
+      syncEngine.enqueue('xp_transactions', 'upsert', {
+        id: txRecord.id,
+        user_id: updatedUser.id,
+        mission_id: mission.id,
+        amount: xpToAdd,
+        reason: 'mission_completion',
+        unique_event_id: uniqueEventId,
+        created_at: completedTimestamp,
       });
     }
 
-    // 6. Evaluate Achievements
+    // 6. Enqueue Mission status sync
+    syncEngine.enqueue('missions', 'upsert', {
+      id: mission.id,
+      user_id: updatedUser.id,
+      title: mission.title,
+      status: 'completed',
+      xp_awarded: true,
+      completed_at: completedTimestamp,
+      updated_at: completedTimestamp,
+    });
+
+    // 7. Enqueue User Profile sync with full 16-field payload (missions completed, rank, productivity, focus)
+    syncEngine.enqueue('profiles', 'upsert', buildProfilePayload(updatedUser, updatedMissions, state.focusSessions));
+
+    // 8. Achievements Evaluation
     const { updatedAchievements, newlyUnlocked } = evaluateAchievements(
       updatedUser,
       updatedMissions,
@@ -337,16 +449,10 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       state.achievements
     );
 
-    // 7. Sound & Haptics Feedback
-    if (xpResult.leveledUp) {
-      soundService.playLevelUp();
-      hapticService.levelUp();
-    } else {
-      soundService.playMissionClear();
-      hapticService.medium();
-    }
+    // Sensory Sound & Haptics
+    soundService.playMissionClear();
+    hapticService.success();
 
-    // 8. Queue System Notification Modal
     let modal: SystemNotification | null = null;
     if (xpResult.leveledUp) {
       modal = {
@@ -440,8 +546,25 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         sourceType: 'focus' as const,
         amount: xpReward,
         timestamp: completedAt,
+        uniqueEventId: `focus_session_${newSession.id}`,
+        reason: 'focus_session',
       },
     ];
+
+    // Enqueue Focus Session sync
+    syncEngine.enqueue('focus_sessions', 'upsert', {
+      id: newSession.id,
+      user_id: updatedUser.id,
+      mission_id: newSession.missionId || null,
+      mission_title: newSession.missionTitle || null,
+      duration_minutes: newSession.durationMinutes,
+      xp_earned: newSession.xpEarned,
+      session_type: newSession.type,
+      completed_at: newSession.completedAt,
+    });
+
+    // Enqueue profile sync with full 16-field payload (missions completed, rank, productivity, focus)
+    syncEngine.enqueue('profiles', 'upsert', buildProfilePayload(updatedUser, state.missions, newSessions));
 
     const { updatedAchievements } = evaluateAchievements(
       updatedUser,
@@ -482,9 +605,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     storageEngine.saveState(nextState);
   },
 
-  addCategory: (category) => {
+  addCategory: (catData) => {
     const newCat: Category = {
-      ...category,
+      ...catData,
       id: `cat-${Date.now()}`,
     };
     const newCategories = [...get().categories, newCat];
@@ -530,7 +653,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     storageEngine.saveState(imported);
     set({
       ...imported,
-      activeTab: 'home',
       systemModal: null,
     });
   },

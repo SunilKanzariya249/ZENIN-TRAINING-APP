@@ -23,11 +23,11 @@ export const Header: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        backgroundColor: 'rgba(5, 7, 11, 0.85)',
+        backgroundColor: 'rgba(5, 7, 11, 0.95)',
         backdropFilter: 'blur(12px)',
         position: 'sticky',
         top: 0,
-        zIndex: 50,
+        zIndex: 100,
       }}
     >
       {/* Hunter Identity & Avatar */}

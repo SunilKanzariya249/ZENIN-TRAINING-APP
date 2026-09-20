@@ -10,13 +10,17 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
+  Smartphone,
 } from 'lucide-react';
+import { Header } from '../../components/layout/Header';
+import { PhoneAuthModal } from '../../components/auth/PhoneAuthModal';
 
 type AuthView = 'splash' | 'welcome' | 'login' | 'signup' | 'forgot';
 
 export const AuthScreens: React.FC = () => {
   const { loginUser } = useAppStore();
   const [view, setView] = useState<AuthView>('splash');
+  const [showPhoneAuth, setShowPhoneAuth] = useState(false);
 
   // Form inputs
   const [name, setName] = useState('');
@@ -218,6 +222,30 @@ export const AuthScreens: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setShowPhoneAuth(true)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: '12px',
+              background: 'rgba(0, 240, 255, 0.08)',
+              border: '1px solid rgba(0, 240, 255, 0.3)',
+              color: 'var(--accent-cyan)',
+              fontFamily: 'var(--font-heading)',
+              fontWeight: 700,
+              fontSize: '13px',
+              letterSpacing: '0.06em',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            <Smartphone size={16} />
+            <span>SIGN IN WITH MOBILE (OTP)</span>
+          </button>
+
+          <button
             onClick={() => setView('signup')}
             style={{
               width: '100%',
@@ -253,56 +281,87 @@ export const AuthScreens: React.FC = () => {
             CONTINUE IN GUEST PROTOCOL
           </button>
         </div>
+
+        <PhoneAuthModal
+          isOpen={showPhoneAuth}
+          onClose={() => setShowPhoneAuth(false)}
+        />
       </div>
     );
   }
 
   // 3. LOGIN / SIGNUP / FORGOT PASSWORD FORM CONTAINER
   return (
-    <div style={{ padding: '24px 20px', minHeight: '80vh', display: 'flex', flexDirection: 'column' }} className="screen-fade-in">
-      <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => setView('welcome')}
-          style={{ background: 'transparent', border: 'none', color: 'var(--accent-cyan)', fontSize: '12px', cursor: 'pointer' }}
-        >
-          ← Back to Terminal
-        </button>
-        <h2
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }} className="screen-fade-in">
+      <Header />
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+        }}
+      >
+        <div
+          className="glass-panel-glow"
           style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '20px',
-            fontWeight: 800,
-            color: '#FFFFFF',
-            marginTop: '10px',
+            width: '100%',
+            maxWidth: '380px',
+            background: 'linear-gradient(145deg, rgba(13, 19, 32, 0.98) 0%, rgba(22, 16, 38, 0.98) 100%)',
+            border: '1px solid var(--accent-cyan)',
+            borderRadius: '16px',
+            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.85), 0 0 25px rgba(0, 240, 255, 0.25)',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
           }}
         >
-          {view === 'login' ? 'ACCESS SYSTEM' : view === 'signup' ? 'HUNTER REGISTRATION' : 'RECOVER BEACON'}
-        </h2>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-          {view === 'login'
-            ? 'Enter your neural link credentials.'
-            : view === 'signup'
-            ? 'Forge your Hunter persona in the System registry.'
-            : 'Transmit recovery frequency to your link address.'}
-        </p>
-      </div>
+          <div>
+            <button
+              onClick={() => setView('welcome')}
+              style={{ background: 'transparent', border: 'none', color: 'var(--accent-cyan)', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+            >
+              ← Back to Terminal
+            </button>
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '16px',
+                fontWeight: 800,
+                color: '#FFFFFF',
+                marginTop: '4px',
+                marginBottom: '2px',
+              }}
+            >
+              {view === 'login' ? 'ACCESS SYSTEM' : view === 'signup' ? 'HUNTER REGISTRATION' : 'RECOVER BEACON'}
+            </h2>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+              {view === 'login'
+                ? 'Enter your neural link credentials.'
+                : view === 'signup'
+                ? 'Forge your Hunter persona in the System registry.'
+                : 'Transmit recovery frequency to your link address.'}
+            </p>
+          </div>
 
       {errorMsg && (
         <div
           style={{
-            padding: '10px',
+            padding: '6px 10px',
             background: 'rgba(239, 68, 68, 0.15)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '8px',
+            borderRadius: '7px',
             color: '#FCA5A5',
-            fontSize: '12px',
-            marginBottom: '14px',
+            fontSize: '11px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
           }}
         >
-          <AlertCircle size={15} />
+          <AlertCircle size={14} />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -310,40 +369,39 @@ export const AuthScreens: React.FC = () => {
       {infoMsg && (
         <div
           style={{
-            padding: '10px',
+            padding: '6px 10px',
             background: 'rgba(16, 185, 129, 0.15)',
             border: '1px solid rgba(16, 185, 129, 0.3)',
-            borderRadius: '8px',
+            borderRadius: '7px',
             color: '#10B981',
-            fontSize: '12px',
-            marginBottom: '14px',
+            fontSize: '11px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
           }}
         >
-          <CheckCircle2 size={15} />
+          <CheckCircle2 size={14} />
           <span>{infoMsg}</span>
         </div>
       )}
 
       <form
         onSubmit={view === 'login' ? handleLogin : view === 'signup' ? handleSignUp : handleForgot}
-        style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
       >
         {view === 'signup' && (
           <div>
-            <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px', fontWeight: 700 }}>
               HUNTER CALLSIGN / NAME
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '10px' }}>
-              <UserIcon size={16} color="var(--accent-violet)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '6px 10px' }}>
+              <UserIcon size={14} color="var(--accent-violet)" />
               <input
                 type="text"
                 placeholder="Ren Vanguard"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                style={{ flex: 1, background: 'transparent', border: 'none', color: '#FFFFFF', outline: 'none', fontSize: '13px' }}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: '#FFFFFF', outline: 'none', fontSize: '12px' }}
                 required
               />
             </div>
@@ -351,17 +409,17 @@ export const AuthScreens: React.FC = () => {
         )}
 
         <div>
-          <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+          <label style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px', fontWeight: 700 }}>
             NEURAL LINK ADDRESS (EMAIL)
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '10px' }}>
-            <Mail size={16} color="var(--accent-cyan)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '6px 10px' }}>
+            <Mail size={14} color="var(--accent-cyan)" />
             <input
               type="email"
               placeholder="hunter@zenin.network"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ flex: 1, background: 'transparent', border: 'none', color: '#FFFFFF', outline: 'none', fontSize: '13px' }}
+              style={{ flex: 1, background: 'transparent', border: 'none', color: '#FFFFFF', outline: 'none', fontSize: '12px' }}
               required
             />
           </div>
@@ -369,26 +427,26 @@ export const AuthScreens: React.FC = () => {
 
         {view !== 'forgot' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ACCESS KEY (PASSWORD)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>ACCESS KEY (PASSWORD)</label>
               {view === 'login' && (
                 <button
                   type="button"
                   onClick={() => setView('forgot')}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--accent-cyan)', fontSize: '11px', cursor: 'pointer' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--accent-cyan)', fontSize: '10px', cursor: 'pointer' }}
                 >
                   Forgot Key?
                 </button>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '10px' }}>
-              <Lock size={16} color="var(--accent-violet)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '6px 10px' }}>
+              <Lock size={14} color="var(--accent-violet)" />
               <input
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ flex: 1, background: 'transparent', border: 'none', color: '#FFFFFF', outline: 'none', fontSize: '13px' }}
+                style={{ flex: 1, background: 'transparent', border: 'none', color: '#FFFFFF', outline: 'none', fontSize: '12px' }}
                 required
               />
             </div>
@@ -399,18 +457,18 @@ export const AuthScreens: React.FC = () => {
           type="submit"
           disabled={isLoading}
           style={{
-            marginTop: '10px',
-            padding: '14px',
-            borderRadius: '10px',
+            marginTop: '4px',
+            padding: '10px',
+            borderRadius: '8px',
             background: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
             border: 'none',
             color: '#FFFFFF',
             fontFamily: 'var(--font-display)',
             fontWeight: 800,
-            fontSize: '13px',
+            fontSize: '12px',
             letterSpacing: '0.06em',
             cursor: 'pointer',
-            boxShadow: '0 0 16px rgba(139, 92, 246, 0.4)',
+            boxShadow: '0 0 14px rgba(139, 92, 246, 0.35)',
           }}
         >
           {isLoading
@@ -424,7 +482,7 @@ export const AuthScreens: React.FC = () => {
       </form>
 
       {/* Switch between Login and SignUp */}
-      <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px', color: 'var(--text-muted)' }}>
+      <div style={{ textAlign: 'center', marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
         {view === 'login' ? (
           <>
             <span>Unregistered operative? </span>
@@ -447,6 +505,13 @@ export const AuthScreens: React.FC = () => {
           </>
         )}
       </div>
+
+        <PhoneAuthModal
+          isOpen={showPhoneAuth}
+          onClose={() => setShowPhoneAuth(false)}
+        />
+      </div>
     </div>
+  </div>
   );
 };

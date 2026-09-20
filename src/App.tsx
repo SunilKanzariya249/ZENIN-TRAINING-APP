@@ -13,9 +13,10 @@ import { MissionDetailModal } from './screens/missionDetail/MissionDetailModal';
 import { DailyBriefingModal } from './screens/briefing/DailyBriefingModal';
 import { EveningReviewModal } from './screens/briefing/EveningReviewModal';
 import { SystemModal } from './components/rpg/SystemModal';
-import { AuthScreens } from './screens/auth/AuthScreens';
-import { OnboardingScreen } from './screens/onboarding/OnboardingScreen';
+import { PhoneAuthModal } from './components/auth/PhoneAuthModal';
 import { notificationService } from './notifications/notificationService';
+import { authService } from './services/authService';
+import { syncEngine } from './services/syncEngine';
 
 export const App: React.FC = () => {
   const {
@@ -24,9 +25,28 @@ export const App: React.FC = () => {
     activeTab,
     systemModal,
     setSystemModal,
+    authModalOpen,
+    authModalMode,
+    setAuthModal,
     missions,
     settings,
+    loginUser,
+    user,
   } = useAppStore();
+
+  // Supabase Auth listener for automatic session restoration
+  useEffect(() => {
+    const unsub = authService.onAuthStateChange((cloudUser) => {
+      if (cloudUser && (!isAuthenticated || user.isGuest)) {
+        loginUser(cloudUser);
+      }
+    });
+
+    // Initial background flush for queued offline changes
+    syncEngine.flushQueue();
+
+    return unsub;
+  }, [isAuthenticated, user.isGuest, loginUser]);
 
   // Periodic reminder checking (every 30 seconds)
   useEffect(() => {
@@ -35,24 +55,6 @@ export const App: React.FC = () => {
     }, 30000);
     return () => clearInterval(interval);
   }, [missions, settings]);
-
-  // Auth gate
-  if (!isAuthenticated) {
-    return (
-      <MobileShell>
-        <AuthScreens />
-      </MobileShell>
-    );
-  }
-
-  // Onboarding gate
-  if (!hasOnboarded) {
-    return (
-      <MobileShell>
-        <OnboardingScreen />
-      </MobileShell>
-    );
-  }
 
   return (
     <MobileShell>
@@ -76,6 +78,12 @@ export const App: React.FC = () => {
       <MissionDetailModal />
       <DailyBriefingModal />
       <EveningReviewModal />
+      <PhoneAuthModal
+        isOpen={authModalOpen}
+        initialMode={authModalMode}
+        onClose={() => setAuthModal(false)}
+        onSuccess={() => setAuthModal(false)}
+      />
       <SystemModal
         notification={systemModal}
         onDismiss={() => setSystemModal(null)}

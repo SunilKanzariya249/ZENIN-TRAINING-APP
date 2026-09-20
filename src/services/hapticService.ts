@@ -23,6 +23,24 @@ class HapticEngine {
     }
   }
 
+  public heavy() {
+    if (!this.enabled || typeof window === 'undefined' || !navigator.vibrate) return;
+    try {
+      navigator.vibrate([60, 40, 60]);
+    } catch {
+      // Ignore vibration error
+    }
+  }
+
+  public success() {
+    if (!this.enabled || typeof window === 'undefined' || !navigator.vibrate) return;
+    try {
+      navigator.vibrate([30, 20, 50]);
+    } catch {
+      // Ignore vibration error
+    }
+  }
+
   public levelUp() {
     if (!this.enabled || typeof window === 'undefined' || !navigator.vibrate) return;
     try {
