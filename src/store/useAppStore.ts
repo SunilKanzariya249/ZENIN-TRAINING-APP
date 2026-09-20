@@ -20,6 +20,7 @@ import { hapticService } from '../services/hapticService';
 import { notificationService } from '../notifications/notificationService';
 import { syncEngine, buildProfilePayload } from '../services/syncEngine';
 import { authService } from '../services/authService';
+import { stepCounterService } from '../services/stepCounterService';
 
 export type NavTab = 'home' | 'missions' | 'calendar' | 'statistics' | 'profile';
 
@@ -85,6 +86,7 @@ interface AppStoreState extends DatabaseState {
 const loadedState = storageEngine.loadState();
 soundService.setConfig(loadedState.settings.soundEnabled, loadedState.settings.soundVolume);
 hapticService.setEnabled(loadedState.settings.hapticsEnabled);
+stepCounterService.setDailyGoal(loadedState.settings.dailyStepGoal || 10000);
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
   ...loadedState,
@@ -625,6 +627,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const updated = { ...get().settings, ...partial };
     soundService.setConfig(updated.soundEnabled, updated.soundVolume);
     hapticService.setEnabled(updated.hapticsEnabled);
+    if (partial.dailyStepGoal) {
+      stepCounterService.setDailyGoal(partial.dailyStepGoal);
+    }
     set({ settings: updated });
     storageEngine.saveState({ ...get(), settings: updated });
   },
@@ -657,3 +662,39 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     });
   },
 }));
+
+// Wire Pedometer Step Milestones into RPG progression
+stepCounterService.setOnMilestoneAwarded((award) => {
+  const store = useAppStore.getState();
+  const xpRes = awardUserXp(store.user, award.xpReward);
+  const updatedUser = xpRes.updatedUser;
+  const newTx: XpTransaction = {
+    id: `xp-step-${Date.now()}`,
+    sourceId: `milestone-${award.percent}`,
+    sourceType: 'streak_bonus',
+    amount: award.xpReward,
+    timestamp: new Date().toISOString(),
+    reason: award.title,
+  };
+  const nextState = {
+    ...store,
+    user: updatedUser,
+    xpTransactions: [newTx, ...store.xpTransactions],
+  };
+  storageEngine.saveState(nextState);
+  useAppStore.setState({
+    user: updatedUser,
+    xpTransactions: nextState.xpTransactions,
+    systemModal: {
+      id: `step-modal-${Date.now()}`,
+      type: xpRes.leveledUp ? 'level_up' : 'system_alert',
+      title: 'PHYSICAL CONDITIONING CLEAR',
+      subtitle: award.title,
+      message: `Physical conditioning objective reached (${award.percent}% of daily step target). +${award.xpReward} XP awarded!`,
+      xp: award.xpReward,
+      newLevel: xpRes.leveledUp ? xpRes.newLevel : undefined,
+      newRank: xpRes.leveledUp ? xpRes.newRank : undefined,
+      timestamp: new Date().toISOString(),
+    },
+  });
+});

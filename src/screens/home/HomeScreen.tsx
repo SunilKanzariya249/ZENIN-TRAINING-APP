@@ -3,6 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { XPProgressBar } from '../../components/rpg/XPProgressBar';
 import { StreakBadge } from '../../components/rpg/StreakBadge';
 import { SwipeableMissionCard } from '../../components/missions/SwipeableMissionCard';
+import { FieldTelemetryWidget } from '../../components/telemetry/FieldTelemetryWidget';
 import { format, isToday, parseISO } from 'date-fns';
 import {
   Plus,
@@ -129,6 +130,9 @@ export const HomeScreen: React.FC = () => {
           <strong style={{ color: 'var(--accent-cyan)' }}>{user.totalXpEarned.toLocaleString()} XP</strong>
         </div>
       </div>
+
+      {/* Real-time Field Telemetry (GPS Atmospheric Sensor & Kinetic Pedometer) */}
+      <FieldTelemetryWidget />
 
       {/* 2. Today's Progress Meter & Current Streak */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

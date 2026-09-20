@@ -24,6 +24,9 @@ import {
   AlertTriangle,
   UserX,
   RefreshCw,
+  Footprints,
+  Thermometer,
+  Activity,
 } from 'lucide-react';
 
 export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -126,7 +129,7 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
         position: 'fixed',
         inset: 0,
         backgroundColor: '#05070B',
-        zIndex: 50,
+        zIndex: 150,
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -314,6 +317,103 @@ export const SettingsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =
                 onChange={(e) => updateSettings({ eveningReviewEnabled: e.target.checked })}
                 style={{ width: '16px', height: '16px', accentColor: 'var(--accent-cyan)' }}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Field Telemetry & Physical Sensors */}
+        <div className="glass-panel" style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Activity size={16} color="var(--accent-cyan)" />
+            <h3 style={{ fontSize: '13px', fontFamily: 'var(--font-heading)', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+              FIELD TELEMETRY & PHYSICAL SENSORS
+            </h3>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Step Goal Selection */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Footprints size={15} color="var(--accent-cyan)" />
+                <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>Daily Step Directive</span>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                Calibrates kinetic activity detection and XP milestone rewards (25%, 50%, 75%, 100%).
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                {[5000, 8000, 10000, 15000].map((steps) => {
+                  const isSelected = (settings.dailyStepGoal || 10000) === steps;
+                  return (
+                    <button
+                      key={steps}
+                      type="button"
+                      onClick={() => {
+                        updateSettings({ dailyStepGoal: steps });
+                        soundService.playClick();
+                      }}
+                      style={{
+                        padding: '8px 4px',
+                        borderRadius: '8px',
+                        border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        background: isSelected ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                        color: isSelected ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {(steps / 1000).toFixed(0)}k
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Temperature Unit Preference */}
+            <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <Thermometer size={15} color="var(--accent-amber)" />
+                <span style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>Atmospheric Temperature Unit</span>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                Real-time WMO weather condition and ambient thermal measurement scale.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {[
+                  { unit: 'celsius' as const, label: 'Celsius (°C)' },
+                  { unit: 'fahrenheit' as const, label: 'Fahrenheit (°F)' },
+                ].map(({ unit, label }) => {
+                  const isSelected = (settings.temperatureUnit || 'celsius') === unit;
+                  return (
+                    <button
+                      key={unit}
+                      type="button"
+                      onClick={() => {
+                        updateSettings({ temperatureUnit: unit });
+                        soundService.playClick();
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: isSelected ? '1px solid var(--accent-amber)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        background: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                        color: isSelected ? 'var(--accent-amber)' : 'var(--text-secondary)',
+                        fontSize: '12px',
+                        fontFamily: 'var(--font-heading)',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
