@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { calculateProductivityScore } from '../../services/productivityScore';
 import { FocusModeScreen } from '../focus/FocusModeScreen';
 import { PRIORITIES } from '../../constants/priorities';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import {
   BarChart3,
   Flame,
@@ -16,16 +16,12 @@ import {
   Award,
   ChevronRight,
   Shield,
-  Footprints,
 } from 'lucide-react';
-import { stepCounterService } from '../../services/stepCounterService';
-import { StepHistoryModal } from '../../components/telemetry/StepHistoryModal';
 
 export const StatisticsScreen: React.FC = () => {
   const { user, missions, focusSessions, categories, settings } = useAppStore();
   const [subView, setSubView] = useState<'stats' | 'focus'>('stats');
   const [showScoreInfo, setShowScoreInfo] = useState(false);
-  const [showStepModal, setShowStepModal] = useState(false);
 
   // If user selected Focus mode from sub-navigation
   if (subView === 'focus') {
@@ -398,130 +394,6 @@ export const StatisticsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 3b. Physical Conditioning & Step Trajectory */}
-      {(() => {
-        const stepStats = stepCounterService.getHistoryStats(7);
-        const stepHistory = stepCounterService.getHistory(7);
-        const maxSteps = Math.max(...stepHistory.map((d) => d.steps), stepCounterService.getDailyGoal(), 1000);
-        const goal = stepCounterService.getDailyGoal();
-
-        return (
-          <div className="glass-panel" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Footprints size={15} color="var(--accent-violet)" />
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 700,
-                    color: 'var(--text-primary)',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  PHYSICAL CONDITIONING (7 DAYS)
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowStepModal(true)}
-                style={{
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  color: 'var(--accent-violet)',
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                }}
-              >
-                <span>ALL CHARTS</span>
-                <ChevronRight size={11} />
-              </button>
-            </div>
-
-            {/* Step Stats Overview */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'var(--font-heading)' }}>DAILY AVG</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
-                  {stepStats.averageSteps.toLocaleString()}
-                </div>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'var(--font-heading)' }}>TOTAL KM</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--accent-cyan)', marginTop: '2px' }}>
-                  {stepStats.totalDistanceKm}
-                </div>
-              </div>
-              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '8px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'var(--font-heading)' }}>GOALS MET</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#10B981', marginTop: '2px' }}>
-                  {stepStats.goalsMet} / 7
-                </div>
-              </div>
-            </div>
-
-            {/* Mini preview bar chart */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '80px', gap: '8px' }}>
-              {stepHistory.map((day, idx) => {
-                const barHeightPercent = Math.max(8, Math.round((day.steps / maxSteps) * 100));
-                const isToday = idx === stepHistory.length - 1;
-                const isGoalMet = day.steps >= goal;
-
-                return (
-                  <div
-                    key={day.date}
-                    onClick={() => setShowStepModal(true)}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                      cursor: 'pointer',
-                    }}
-                    title={`${day.date}: ${day.steps} steps`}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        height: `${barHeightPercent}%`,
-                        borderRadius: '4px 4px 1px 1px',
-                        background: isGoalMet
-                          ? 'linear-gradient(180deg, var(--accent-cyan) 0%, var(--accent-violet) 100%)'
-                          : isToday
-                          ? 'linear-gradient(180deg, #8B5CF6 0%, #6366F1 100%)'
-                          : 'rgba(255, 255, 255, 0.15)',
-                        transition: 'height 0.4s ease',
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-mono)',
-                        color: isToday ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                        fontWeight: isToday ? 700 : 500,
-                        marginTop: '4px',
-                      }}
-                    >
-                      {isToday ? 'Today' : format(parseISO(day.date), 'EEE')}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* 4. Priority Tier Distribution */}
       <div className="glass-panel" style={{ padding: '16px' }}>
@@ -619,8 +491,7 @@ export const StatisticsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Multi-Day Step Analytics Modal */}
-      {showStepModal && <StepHistoryModal onClose={() => setShowStepModal(false)} />}
+
     </div>
   );
 };

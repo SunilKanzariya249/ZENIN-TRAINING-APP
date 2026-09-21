@@ -131,7 +131,7 @@ export interface UserSettings {
   quietHoursEnd: string; // e.g. "07:00"
   weekStartDay: 'sunday' | 'monday';
   dailyMissionGoal: number;
-  dailyStepGoal: number; // e.g. 10,000 steps
+  dailyStepGoal?: number;
   temperatureUnit: 'celsius' | 'fahrenheit';
   reducedMotion: boolean;
   supabaseUrl?: string;
@@ -154,28 +154,6 @@ export interface WeatherMetrics {
   country: string;
   isDay: boolean;
   lastUpdated: string;
-}
-
-export interface DailyStepRecord {
-  date: string; // 'YYYY-MM-DD'
-  steps: number;
-  distanceKm: number;
-  caloriesBurned: number;
-  activeMinutes: number;
-  goal: number;
-  goalReached: boolean;
-}
-
-export interface StepMetrics {
-  steps: number;
-  goal: number;
-  distanceKm: number;
-  caloriesBurned: number;
-  activeMinutes: number;
-  isSensorActive: boolean;
-  lastStepTimestamp?: number;
-  historicalDays?: DailyStepRecord[];
-  isNativeHardware?: boolean;
 }
 
 export interface XpTransaction {

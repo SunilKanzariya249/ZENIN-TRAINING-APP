@@ -141,7 +141,7 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Real-time Field Telemetry (GPS Atmospheric Sensor & Kinetic Pedometer) */}
+      {/* Real-time Field Telemetry (GPS Atmospheric & Meteorological Intelligence) */}
       <FieldTelemetryWidget />
 
       {/* 2. Today's Progress Meter & Current Streak */}

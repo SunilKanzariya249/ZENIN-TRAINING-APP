@@ -17,7 +17,6 @@ export const INITIAL_SETTINGS: UserSettings = {
   quietHoursEnd: '07:00',
   weekStartDay: 'monday',
   dailyMissionGoal: 5,
-  dailyStepGoal: 10000,
   temperatureUnit: 'celsius',
   reducedMotion: false,
   missionDeadlineAlertsEnabled: true,
